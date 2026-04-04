@@ -1,5 +1,5 @@
 """
-kv_cache_test.py
+main.py
 ─────────────────────────────────────────────────────────────────────
 DevOps-ready KV cache benchmark: Baseline vs TurboQuant (simulated).
 
@@ -9,24 +9,24 @@ No hardcoded values in this file.
 
 Usage:
     # Run with defaults (reads config.yaml + prompts.json)
-    python3 kv_cache_test.py
+    python3 main.py
 
     # Use a different config or prompts file
-    python3 kv_cache_test.py --config my_config.yaml --prompts my_prompts.json
+    python3 main.py --config my_config.yaml --prompts my_prompts.json
 
     # Run only one config
-    python3 kv_cache_test.py --only baseline
-    python3 kv_cache_test.py --only turboquant
+    python3 main.py --only baseline
+    python3 main.py --only turboquant
 
     # Filter prompts by type
-    python3 kv_cache_test.py --prompt-types short long
-    python3 kv_cache_test.py --prompt-types multiturn
+    python3 main.py --prompt-types short long
+    python3 main.py --prompt-types multiturn
 
     # Change output file
-    python3 kv_cache_test.py --output results/run_001.json
+    python3 main.py --output results/run_001.json
 
     # Dry run — print config and prompts without running inference
-    python3 kv_cache_test.py --dry-run
+    python3 main.py --dry-run
 ─────────────────────────────────────────────────────────────────────
 """
 
