@@ -49,28 +49,18 @@ vLLMTurboQuantKVCacheCPU
 ├── main.py          # Main benchmark runner (self-contained)
 ├── generate_plots.py           
 ├── config.yaml    # all parameters here
-├── prompts.json              # All benchmark prompts - one can edit it here 
+├── prompts.json         # All benchmark prompts - one can edit it here 
 │
 ├── benchmark/
-│   ├── runner.py             # HTTP streaming runner (measures TTFT + ITL)
-│   ├── workload.py           
-│   ├── quality_eval.py       
+│   ├── metrics_eval.py             # HTTP streaming runner (measures TTFT + ITL)      
 │
 ├── scripts/
 │   ├── setup.sh              # Environment setup
-│   ├── start_server.sh       # Start vLLM HTTP server
-│   ├── stop_server.sh        # Stop vLLM HTTP server
-│   ├── run_experiment.sh     # Full automated experiment (server-based)
-│   └── collect_metrics.sh    # Background RAM sampler
 │
 ├── results/
 │   ├── figures/              # Auto-generated PNG plots│
 ├── docs/
 │   └── assumptions.md        # Full TurboQuant simulation rationale
-│
-├── Dockerfile                # Optional: containerised run
-├── docker-compose.yml        # Optional: Docker Compose
-├── requirements.txt          # Python dependencies
 └── .gitignore
 ```
 
