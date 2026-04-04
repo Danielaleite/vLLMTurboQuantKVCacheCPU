@@ -30,7 +30,7 @@ A simple benchmarking framework comparing Baseline and TurboQuant-simulated KVca
 
 ## 1. Overview
 
-[TurboQuant](https://docs.vllm.ai) is a GPU-native KV cache quantization technique in vLLM that compresses Key-Value tensors to INT8/FP8, reducing memory by 4–8x. This repo simulates its effects using CPU-available knobs and documents all assumptions made.
+[TurboQuant](https://github.com/0xSero/turboquant) is a GPU-native KV cache quantization technique in vLLM that compresses Key-Value tensors to INT8/FP8, reducing memory by 4–8x. This repo simulates its effects using CPU-available knobs and documents all assumptions made.
 
 | Configuration | dtype | max_model_len | Memory budget | What it simulates |
 |---|---|---|---|---|
@@ -315,7 +315,7 @@ Sample output:
 Experiment : kv_cache_eval_v1
 Model      : TinyLlama/TinyLlama-1.1B-Chat-v1.0
 Prompts    : 11 loaded from prompts.json
-Output     : kv_cache_results.json
+Output     : results.json
 
 Configs to run:
   [baseline]    dtype=float32, max_model_len=2048
@@ -335,8 +335,7 @@ Runs both configs sequentially, loads the model twice, generates all 11 prompts 
 
 ```bash
 conda activate vllm-cpu
-cd ~/genaiops-kvcache
-
+cd ~/vLLMTurboQuantKVCacheCPU
 VLLM_CPU_KVCACHE_SPACE=4 python3 kv_cache_test.py
 ```
 
@@ -353,7 +352,7 @@ Progress is printed in real time:
 ...
 ```
 
-When finished, results are saved to `kv_cache_results.json`.
+When finished, results are saved to `results.json`.
 
 ---
 
@@ -361,40 +360,38 @@ When finished, results are saved to `kv_cache_results.json`.
 
 ```bash
 # Short prompts only (~5 min — good for quick iteration)
-VLLM_CPU_KVCACHE_SPACE=4 python3 kv_cache_test.py --prompt-types short
+VLLM_CPU_KVCACHE_SPACE=4 python3 test.py --prompt-types short
 
 # Long prompts only
-VLLM_CPU_KVCACHE_SPACE=4 python3 kv_cache_test.py --prompt-types long
+VLLM_CPU_KVCACHE_SPACE=4 python3 test.py --prompt-types long
 
 # Multi-turn only
-VLLM_CPU_KVCACHE_SPACE=4 python3 kv_cache_test.py --prompt-types multiturn
+VLLM_CPU_KVCACHE_SPACE=4 python3 test.py --prompt-types multiturn
 
 # Short + long, skip multi-turn
-VLLM_CPU_KVCACHE_SPACE=4 python3 kv_cache_test.py --prompt-types short long
+VLLM_CPU_KVCACHE_SPACE=4 python3 test.py --prompt-types short long
 
 # Run baseline config only (skip turboquant)
-VLLM_CPU_KVCACHE_SPACE=4 python3 kv_cache_test.py --only baseline
+VLLM_CPU_KVCACHE_SPACE=4 python3 test.py --only baseline
 
 # Run turboquant only (if baseline already done)
-VLLM_CPU_KVCACHE_SPACE=4 python3 kv_cache_test.py --only turboquant
+VLLM_CPU_KVCACHE_SPACE=4 python3 test.py --only turboquant
 
 # Custom output file (useful for multiple experiment runs)
-VLLM_CPU_KVCACHE_SPACE=4 python3 kv_cache_test.py --output results/run_002.json
+VLLM_CPU_KVCACHE_SPACE=4 python3 test.py --output results/run_002.json
 
 # Use a different prompts file entirely
-VLLM_CPU_KVCACHE_SPACE=4 python3 kv_cache_test.py --prompts my_custom_prompts.json
+VLLM_CPU_KVCACHE_SPACE=4 python3 test.py --prompts my_custom_prompts.json
 ```
 
 ---
 
 ## 6. Generating Plots and Tables
 
-After `kv_cache_results.json` exists, run:
+After `results.json` exists, run:
 
 ```bash
 conda activate vllm-cpu
-cd ~/genaiops-kvcache
-
 python3 plot_results.py
 
 ```bash
@@ -612,4 +609,4 @@ Real TurboQuant is GPU-only (`--kv-cache-dtype fp8` in vLLM, requires Ampere+ GP
 | Eviction pressure | Memory budget exceeded → evict | max_model_len halved to 1024 | Causes context truncation on long prompts |
 | Smaller block pool | Fewer KV blocks pre-allocated | gpu_memory_utilization=0.50 | Directional approximation |
 
-**Key implication:** The CPU results showing TurboQuant as slower are expected and correct. On a GPU with native INT8 Tensor Cores, the compression benefit would outweigh the overhead, and TurboQuant would show 15–40% throughput improvement. See `docs/assumptions.md` for the full rationale.
+**Key implication:** The CPU results showing TurboQuant as slower are expected and correct. On a GPU with native INT8 Tensor Cores, the compression benefit would outweigh the overhead, and TurboQuant would show 15–40% throughput improvement. 
