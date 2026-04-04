@@ -1,77 +1,60 @@
 # TurboQuantKV Cache Evaluation
 
-Benchmarking framework comparing Baseline and TurboQuant-simulated KVcache strategies on CPU-only vLLM inference using TinyLlama-1.1B.
+A simple benchmarking framework comparing Baseline and TurboQuant-simulated KVcache strategies on CPU-only vLLM inference using TinyLlama-1.1B.
 
-> **What this does:** Runs two vLLM configurations back-to-back, measures latency (E2E p50/p95/p99), throughput (tok/s), RAM usage, and output quality (Token-F1), then generates plots and a markdown table ready to paste into a report.
-
+> **What this does:** Runs two vLLM configurations, measures latency (E2E p50/p95/p99), throughput (tok/s), RAM usage, and output quality (Token-F1).
 ---
 
 ## Table of Contents
 
-1. [Project Overview](#1-overview)
-2. [Repository Structure](#2-repository-structure)
-3. [Prerequisites](#3-prerequisites)
-4. [Environment Setup](#4-environment-setup)
-   - 4.1 [Fix WSL2 Memory Limits](#41-fix-wsl2-memory-limits-do-this-first)
-   - 4.2 [Install Miniconda](#42-install-miniconda)
-   - 4.3 [Create Conda Environment](#43-create-conda-environment)
-   - 4.4 [Install System Dependencies](#44-install-system-dependencies)
-   - 4.5 [Install vLLM CPU Wheel](#45-install-vllm-cpu-wheel)
-   - 4.6 [Install Python Dependencies](#46-install-python-dependencies)
-   - 4.7 [Pre-download the Model](#47-pre-download-the-model)
-   - 4.8 [Verify Installation](#48-verify-installation)
-5. [Running the Benchmark](#5-running-the-benchmark)
-   - 5.1 [Dry Run](#51-dry-run-recommended-first-step)
-   - 5.2 [Full Benchmark](#52-full-benchmark)
-   - 5.3 [Filtered Runs](#53-filtered-runs)
-6. [Generating Plots and Tables](#6-generating-plots-and-tables)
-7. [Understanding the Output](#7-understanding-the-output)
+1. [Overview](#1-overview)
+2. [Prerequisites](#2-prerequisites)
+3. [Environment Setup](#3-environment-setup)
+   - 3.1 [Fix WSL2 Memory Limits](#31-fix-wsl2-memory-limits-do-this-first)
+   - 3.2 [Install Miniconda](#32-install-miniconda)
+   - 3.3 [Create Conda Environment](#33-create-conda-environment)
+   - 3.4 [Install System Dependencies](#34-install-system-dependencies)
+   - 3.5 [Install vLLM CPU Wheel](#35-install-vllm-cpu-wheel)
+   - 3.6 [Install Python Dependencies](#36-install-python-dependencies)
+   - 3.7 [Pre-download the Model](#37-pre-download-the-model)
+   - 3.8 [Verify Installation](#38-verify-installation)
+4. [Benchmark](#4-running-the-benchmark)
+6. [Generating some plots](#6-generating-plots-and-tables)
+7. [Understanding the Outputs](#7-understanding-the-output)
 8. [Configuration Reference](#8-configuration-reference)
 9. [Prompts Reference](#9-prompts-reference)
-10. [Troubleshooting](#10-troubleshooting)
-11. [How Metrics Are Calculated](#11-how-metrics-are-calculated)
-12. [TurboQuant Simulation — Assumptions](#12-turboquant-simulation--assumptions)
+10. [How Metrics Are Calculated](#10-how-metrics-are-calculated)
+11. [TurboQuant Simulation — Assumptions](#11-turboquant-simulation--assumptions)
 
 ---
 
-## 1. Project Overview
+## 1. Overview
 
-[TurboQuant](https://docs.vllm.ai) is a GPU-native KV cache quantization technique in vLLM that compresses Key-Value tensors to INT8/FP8, reducing memory by 4–8x. **It does not run on CPU.** This project simulates its effects using CPU-available knobs and documents all assumptions clearly.
+[TurboQuant](https://docs.vllm.ai) is a GPU-native KV cache quantization technique in vLLM that compresses Key-Value tensors to INT8/FP8, reducing memory by 4–8x. This repo simulates its effects using CPU-available knobs and documents all assumptions made.
 
 | Configuration | dtype | max_model_len | Memory budget | What it simulates |
 |---|---|---|---|---|
 | **Baseline** | float32 | 2048 | 90% | Standard vLLM, no optimization |
 | **TurboQuant** | float16 | 1024 | 50% | FP16 ≈ 2x KV memory reduction; truncated context ≈ eviction pressure |
 
-**Key result on CPU:** TurboQuant is ~20% slower and ~17% lower throughput, but uses ~14% less RAM. This is expected — FP16 has no hardware acceleration on x86 CPUs. On GPU (where INT8 Tensor Cores exist), results would invert.
+**Key result on CPU:** TurboQuant is ~20% slower and ~17% lower throughput, but uses ~14% less RAM. This is expected — FP16 has no hardware acceleration on x86 CPUs. On GPU (where INT8 Tensor Cores exist), results would invert (based on the main paper).
 
 ---
 
 ## 2. Repository Structure
 
 ```
-genaiops-kvcache/
+vLLMTurboQuantKVCacheCPU
 │
-├── kv_cache_test.py          # Main benchmark runner (self-contained)
-├── plot_results.py           # Generates all figures and tables
-├── experiment_config.yaml    # Single source of truth — all parameters here
-├── prompts.json              # All benchmark prompts (swap without editing code)
-│
-├── apps/
-│   └── vllm/
-│       ├── base/
-│       │   └── config.yaml               # Shared vLLM defaults
-│       └── overlays/
-│           ├── baseline/
-│           │   └── config.yaml           # Baseline overrides
-│           └── turboquant/
-│               └── config.yaml           # TurboQuant simulation overrides
+├── main.py          # Main benchmark runner (self-contained)
+├── generate_plots.py           
+├── config.yaml    # all parameters here
+├── prompts.json              # All benchmark prompts - one can edit it here 
 │
 ├── benchmark/
 │   ├── runner.py             # HTTP streaming runner (measures TTFT + ITL)
-│   ├── workload.py           # Extended workload definition
-│   ├── quality_eval.py       # Semantic similarity evaluation
-│   └── generate_report.py   # Auto-report generation
+│   ├── workload.py           
+│   ├── quality_eval.py       
 │
 ├── scripts/
 │   ├── setup.sh              # Environment setup
@@ -81,14 +64,10 @@ genaiops-kvcache/
 │   └── collect_metrics.sh    # Background RAM sampler
 │
 ├── results/
-│   ├── figures/              # Auto-generated PNG plots
-│   ├── tables/               # metrics_table.md + metrics_table.csv
-│   └── SAMPLE_summary_report.md
-│
+│   ├── figures/              # Auto-generated PNG plots│
 ├── docs/
 │   └── assumptions.md        # Full TurboQuant simulation rationale
 │
-├── REPORT.txt                # Final assessment report
 ├── Dockerfile                # Optional: containerised run
 ├── docker-compose.yml        # Optional: Docker Compose
 ├── requirements.txt          # Python dependencies
@@ -121,7 +100,7 @@ genaiops-kvcache/
 
 ### 4.1 Fix WSL2 Memory Limits (do this first)
 
-WSL2 caps RAM at 50% by default. The vLLM model load will silently get killed without this fix.
+I used WSL2, which caps RAM at 50% by default. The vLLM model load will silently get killed without this fix.
 
 Open **Windows PowerShell** (not WSL):
 
@@ -129,7 +108,7 @@ Open **Windows PowerShell** (not WSL):
 notepad "$env:USERPROFILE\.wslconfig"
 ```
 
-Paste the following (adjust `memory` to your machine — if you have 16 GB, use 12):
+Paste the following (adjust `memory` — if you have 16 GB, use 12):
 
 ```ini
 [wsl2]
@@ -138,14 +117,11 @@ swap=8GB
 processors=4
 ```
 
-Save, then restart WSL2:
+Save, restart WSL2:
 
 ```powershell
 wsl --shutdown
 ```
-
-Wait 5 seconds, then reopen your WSL terminal.
-
 ---
 
 ### 4.2 Install Miniconda
@@ -235,8 +211,6 @@ pip install \
     --extra-index-url https://download.pytorch.org/whl/cpu
 ```
 
-> **Why a pinned version?** vLLM changes its Python API frequently. v0.8.5 is the version this project was tested against. If you want the latest, replace `v0.8.5` with the current version but expect possible API changes.
-
 **Verify the installation:**
 
 ```bash
@@ -272,8 +246,6 @@ pip install \
 ---
 
 ### 4.7 Pre-download the Model
-
-Downloads TinyLlama (~2.2 GB) to the HuggingFace cache. Do this once before running benchmarks to avoid timeout errors mid-run.
 
 ```bash
 conda activate vllm-cpu
@@ -331,14 +303,14 @@ Prints exactly what will run — configs, prompts, output path — without loadi
 
 ```bash
 conda activate vllm-cpu
-cd ~/genaiops-kvcache
+cd ~/vLLMTurboQuantKVCacheCPU
 
-python3 kv_cache_test.py --dry-run
+python3 main.py --dry-run
 ```
 
 Sample output:
 ```
-=== DRY RUN — no inference will run ===
+=== DRY RUN ===
 
 Experiment : kv_cache_eval_v1
 Model      : TinyLlama/TinyLlama-1.1B-Chat-v1.0
@@ -424,26 +396,6 @@ conda activate vllm-cpu
 cd ~/genaiops-kvcache
 
 python3 plot_results.py
-```
-
-This generates:
-
-```
-results/
-├── figures/
-│   ├── summary_dashboard.png     ← main report figure (all metrics in one)
-│   ├── latency_comparison.png    ← E2E p50/p95/p99 grouped bars
-│   ├── per_prompt_latency.png    ← every prompt individually
-│   ├── throughput_memory.png     ← tok/s and RAM side by side
-│   └── quality_scores.png       ← Token-F1 per prompt with HIGH/MED/LOW colours
-└── tables/
-    ├── metrics_table.md          ← paste directly into your report
-    └── metrics_table.csv         ← import into Excel or pandas
-```
-
-> **No results file yet?** `plot_results.py` automatically falls back to the representative numbers from `REPORT.txt` so you always get valid output. Run it anytime.
-
-To point at a specific results file:
 
 ```bash
 python3 plot_results.py --results results/run_002.json --output-dir results/run_002
@@ -651,7 +603,7 @@ Score of 1.0 = identical word sets. Score < 0.60 = significant divergence.
 
 ## 12. TurboQuant Simulation — Assumptions
 
-Real TurboQuant is GPU-only (`--kv-cache-dtype fp8` in vLLM, requires Ampere+ GPU). This project simulates its observable effects on CPU:
+Real TurboQuant is GPU-only (`--kv-cache-dtype fp8` in vLLM, requires Ampere+ GPU). Here its observable effects on CPU are simulated:
 
 | TurboQuant Effect | GPU Reality | This Simulation | Notes |
 |---|---|---|---|
@@ -661,9 +613,3 @@ Real TurboQuant is GPU-only (`--kv-cache-dtype fp8` in vLLM, requires Ampere+ GP
 | Smaller block pool | Fewer KV blocks pre-allocated | gpu_memory_utilization=0.50 | Directional approximation |
 
 **Key implication:** The CPU results showing TurboQuant as slower are expected and correct. On a GPU with native INT8 Tensor Cores, the compression benefit would outweigh the overhead, and TurboQuant would show 15–40% throughput improvement. See `docs/assumptions.md` for the full rationale.
-
----
-
-## Licence
-
-MIT — free to use, modify, and distribute.

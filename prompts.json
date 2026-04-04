@@ -1,0 +1,70 @@
+{
+  "_comment": "Benchmark prompt workload. Edit or add entries freely. Keys become prompt IDs in results.",
+  "_format": "Each entry: { 'type': short|long|multiturn, 'text': '...', 'note': '...' }",
+
+  "short_1": {
+    "type": "short",
+    "note": "Simple factual — tests baseline TTFT",
+    "text": "What is the capital of France?"
+  },
+
+  "short_2": {
+    "type": "short",
+    "note": "Technical one-liner",
+    "text": "Explain what is a CPU in one sentence."
+  },
+
+  "short_3": {
+    "type": "short",
+    "note": "List generation",
+    "text": "Name three programming languages and their main use cases."
+  },
+
+  "short_4": {
+    "type": "short",
+    "note": "Arithmetic — tests determinism across runs",
+    "text": "What is 128 multiplied by 37? Show your working."
+  },
+
+  "short_5": {
+    "type": "short",
+    "note": "Definition lookup",
+    "text": "What does REST stand for in software engineering and what are its core constraints?"
+  },
+
+  "long_1": {
+    "type": "long",
+    "note": "Architecture review — large technical context, stresses KV cache",
+    "text": "You are a senior software architect. Review this system design: We have a distributed event processing platform handling 10 million events/day from IoT sensors across 50 manufacturing plants. The architecture uses Kafka (12 brokers, 3 AZs, replication factor 3), Apache Flink for stream processing with Z-score anomaly detection (threshold > 3 std deviations), InfluxDB for time-series storage with 30-day raw retention and 1-year downsampled retention, and a stateless alert service that deduplicates within 5-minute windows and notifies via PagerDuty. Plants have 2% average packet loss. Peak load spikes 10x at shift changes (7am, 3pm, 11pm UTC). The alert service is a single point of failure. What are the top 3 architectural weaknesses and how would you fix each one with specific technology choices?"
+  },
+
+  "long_2": {
+    "type": "long",
+    "note": "Code review with security and perf issues — code in context",
+    "text": "You are a Python security expert. Review this code and find all bugs, security vulnerabilities, and performance problems:\n\nimport psycopg2\nDB_PASSWORD = 'SuperSecret123!'\ndef get_users(user_id):\n    conn = psycopg2.connect(password=DB_PASSWORD)\n    cur = conn.cursor()\n    cur.execute(f'SELECT * FROM users WHERE id = {user_id}')\n    return cur.fetchall()\ndef process_all():\n    for i in range(1000000):\n        result = get_users(i)\n        print(result)\n\nList every issue with severity ratings (CRITICAL/HIGH/MEDIUM/LOW) and provide a fully corrected version."
+  },
+
+  "long_3": {
+    "type": "long",
+    "note": "Incident post-mortem — narrative analysis of raw notes",
+    "text": "You are a DevOps engineer. Write a professional post-mortem from these raw incident notes:\n\nDate: Last Tuesday 2am. Duration: 4 hours. Impact: All EU users could not log in.\nTimeline: 2:03am alerts fired, auth service error rate 95%. 2:07am I woke up, DB connections maxed. 2:15am restarted auth pods, no improvement. 2:30am noticed deployment at 1:45am changed connection pool config. 2:45am rolled back deployment, still broken. 3:00am DB CPU at 100%, seeing 'too many connections'. 3:15am escalated to DBA. 3:45am DBA found rogue query doing full table scan on sessions table (60M rows). 4:00am killed rogue queries and added index, CPU dropped. 6:15am incident closed.\n\nRoot cause: new config caused thundering herd, bad cron job query ran same time, index was missing for months.\n\nWrite a complete post-mortem with: timeline, root cause analysis, contributing factors, impact assessment, and action items with owners and SLAs."
+  },
+
+  "multiturn_1": {
+    "type": "multiturn",
+    "note": "Kubernetes learning conversation — context accumulates across 3 turns",
+    "text": "<|user|>\nI want to learn Kubernetes. Where should I start?\n<|assistant|>\nStart with containers and Docker first, then move to core Kubernetes concepts: Pods, Deployments, Services, and namespaces. The official docs at kubernetes.io are excellent for beginners.\n<|user|>\nCan you explain what a Pod is in more detail?\n<|assistant|>\nA Pod is the smallest deployable unit in Kubernetes. It wraps one or more containers that share the same network namespace and storage volumes. Containers inside a Pod communicate via localhost and are always scheduled together on the same node.\n<|user|>\nHow is a Pod different from a Deployment? Give a concrete example with YAML.\n<|assistant|>\n"
+  },
+
+  "multiturn_2": {
+    "type": "multiturn",
+    "note": "Debugging session — error narrows across turns, KV cache reuse tested",
+    "text": "<|user|>\nHelp me debug this Python error: AttributeError: 'NoneType' object has no attribute 'split'\n<|assistant|>\nThis error means you are calling .split() on a variable that holds None instead of a string. The variable was either never assigned or a function returned None unexpectedly.\n<|user|>\nMy code is: result = get_user_name().split(' '). The function sometimes returns None when the user has no name set.\n<|assistant|>\nThe function returns None in some cases instead of an empty string or a default value. You need to handle the None case before calling .split().\n<|user|>\nWhat is the most Pythonic way to fix this? Show me 3 different approaches with pros and cons of each.\n<|assistant|>\n"
+  },
+
+  "multiturn_3": {
+    "type": "multiturn",
+    "note": "Travel planning — topic deepens, long accumulated context",
+    "text": "<|user|>\nI am planning a 10-day trip to Japan. What are the must-see places?\n<|assistant|>\nFor 10 days, I would recommend Tokyo (3 days), Kyoto (3 days), Osaka (2 days), and a day trip to Hiroshima and Nara. Tokyo offers Shinjuku, Shibuya, Akihabara and Asakusa. Kyoto has Fushimi Inari, Arashiyama bamboo grove and dozens of temples. Osaka is known for Dotonbori and the food scene.\n<|user|>\nI am most interested in Kyoto. What is the best time to visit and what should I prioritize?\n<|assistant|>\nThe best times for Kyoto are late March to early April for cherry blossoms, and November for autumn foliage. Both are peak season so book accommodation early. Top priorities: Fushimi Inari Taisha at dawn before crowds, Arashiyama in the morning, Kinkaku-ji, Gion district for geisha sightings at dusk, and a day trip to Nara for the deer park and Todai-ji temple.\n<|user|>\nCreate a detailed 3-day Kyoto itinerary for me. I arrive Friday morning and love photography and local food.\n<|assistant|>\n"
+  }
+}

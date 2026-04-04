@@ -1,0 +1,54 @@
+# experiment_config.yaml
+# ─────────────────────────────────────────────────────────────────────
+# Single source of truth for the KV cache benchmark.
+# Edit this file to change model, configs, or run settings.
+# No Python code needs to change.
+# ─────────────────────────────────────────────────────────────────────
+
+experiment:
+  name: "kv_cache_eval_v1"
+  description: "Baseline vs TurboQuant (simulated) KV cache comparison"
+  model: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+  prompts_file: "prompts.json"       # path to prompts file
+  output_file: "kv_cache_results.json"
+  warmup_requests: 1
+  max_tokens: 200
+  temperature: 0.0                   # 0.0 = greedy/deterministic
+
+# ── vLLM configuration profiles ──────────────────────────────────────
+# Each profile maps directly to vLLM LLM() constructor arguments.
+# Add more profiles here to test additional strategies.
+
+configs:
+  baseline:
+    description: "Standard KV cache — FP32, full context, no constraints"
+    dtype: "float32"
+    max_model_len: 2048
+    gpu_memory_utilization: 0.90
+    swap_space: 4
+    enforce_eager: true
+    max_num_seqs: 4
+
+  turboquant:
+    description: >
+      Simulated TurboQuant — FP16 dtype (~2x KV memory reduction),
+      halved context window (eviction pressure), tighter memory budget.
+      Real TurboQuant achieves 4x via INT8/FP8 GPU kernels (GPU-only).
+    dtype: "float16"
+    max_model_len: 1024
+    gpu_memory_utilization: 0.50
+    swap_space: 1
+    enforce_eager: true
+    max_num_seqs: 4
+
+# ── Quality thresholds for pass/fail verdict ─────────────────────────
+quality:
+  high_threshold: 0.80    # F1 >= this → HIGH quality
+  med_threshold: 0.60     # F1 >= this → MEDIUM quality
+                          # F1 <  this → LOW quality
+
+# ── Environment variables set before vLLM loads ──────────────────────
+env:
+  VLLM_CPU_KVCACHE_SPACE: "4"        # GB of RAM for KV cache blocks
+  TOKENIZERS_PARALLELISM: "false"    # suppress tokenizer warnings
+  OMP_NUM_THREADS: "4"               # OpenMP threads for CPU inference
