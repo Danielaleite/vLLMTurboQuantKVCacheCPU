@@ -12,7 +12,7 @@ Usage:
     python3 main.py
 
     # Use a different config or prompts file
-    python3 main.py --config my_config.yaml --prompts my_prompts.json
+    python3 main.py --config config.yaml --prompts prompts.json
 
     # Run only one config
     python3 main.py --only baseline
