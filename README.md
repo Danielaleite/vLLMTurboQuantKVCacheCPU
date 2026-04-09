@@ -63,25 +63,7 @@ vLLMTurboQuantKVCacheCPU
 
 Pick one of two paths:
 
-### Option A — Docker (easiest, no setup required)
-
-```bash
-docker build -t turboquant-bench .
-docker run --rm -v $(pwd)/results:/app/results turboquant-bench
-```
-
-Results land in `./results/kv_cache_results.json`. Done.
-
-To pass CLI flags:
-
-```bash
-docker run --rm -v $(pwd)/results:/app/results turboquant-bench \
-  python3 main.py --prompt-types short --output results/run_001.json
-```
-
----
-
-### Option B — Local (WSL2 / Linux)
+### Option A — Local (WSL2 / Linux)
 
 **Requirements:** WSL2 Ubuntu 22.04, 8 GB+ RAM, x86_64 CPU with AVX2 (any CPU after ~2013), Python 3.12, conda.
 
@@ -122,6 +104,10 @@ VLLM_CPU_KVCACHE_SPACE=4 python3 main.py
 ```
 
 Results saved to `kv_cache_results.json`.
+
+---
+
+### Option B — Docker (easiest, no setup required)
 
 ---
 
