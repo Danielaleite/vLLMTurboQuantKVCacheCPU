@@ -1,10 +1,10 @@
 """
 main.py
 ─────────────────────────────────────────────────────────────────────
-DevOps-ready KV cache benchmark: Baseline vs TurboQuant (simulated).
+A comparison of KV cache benchmarking: Baseline vs TurboQuant (simulated).
 
-All parameters live in config.yaml.
-All prompts live in prompts.json.
+All parameters are in config.yaml.
+All prompts can be found in prompts.json.
 No hardcoded values in this file.
 
 Usage:

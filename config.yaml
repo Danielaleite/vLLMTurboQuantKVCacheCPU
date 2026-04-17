@@ -10,7 +10,7 @@ experiment:
   description: "Baseline vs TurboQuant (simulated) KV cache comparison"
   model: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
   prompts_file: "prompts.json"       # path to prompts file
-  output_file: "kv_cache_results.json"
+  output_file: "results/results.json"
   warmup_requests: 1
   max_tokens: 200
   temperature: 0.0                   # 0.0 = greedy/deterministic

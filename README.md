@@ -21,20 +21,19 @@ A simple benchmarking framework comparing Baseline and TurboQuant-simulated KVca
 ```
 vLLMTurboQuantKVCacheCPU
 │
-├── main.py          # Main script
-├── generate_plots.py  'uses the results files to generate nice plots         
-├── config.yaml    # all parameters here
-├── prompts.json         # all benchmark prompts - one can edit it here
 ├── setup.sh              # Environment setup 
-├── results.json        # results json saved
-│
-├── benchmark/
-│   ├── metrics_eval.py             
+│        
 │
 ├── results/
+│   ├── results.json        # results json saved
 │   ├── figures/              # Auto-generated PNG plots│
-├── docs/
-│   └── assumptions.md        # Full TurboQuant simulation rationale
+│
+├── scripts/
+│   ├── main.py              # Main script 
+│   ├── config.yaml          # all parameters here
+│   ├── prompts.json         # all benchmark prompts - one can edit it here        
+│   ├── generate_plots.py     #uses the results files to generate nice plots 
+│   └── compute_metrics.py        # detailed metrics
 └── .gitignore
 ```
 
@@ -103,11 +102,25 @@ conda activate vllm-cpu
 VLLM_CPU_KVCACHE_SPACE=4 python3 main.py
 ```
 
-Results saved to `kv_cache_results.json`.
+Results saved to `results/results.json`.
 
 ---
 
 ### Option B — Docker (easiest, no setup required)
+
+```bash
+docker build -t turboquant-bench .
+docker run --rm -v $[addpwd]/results:/app/results turboquant-bench
+```
+
+Results land in `./results/results.json`. Done.
+
+To pass CLI flags:
+
+```bash
+docker run --rm -v $(pwd)/results:/app/results turboquant-bench
+python3 main.py --prompt-types short --output results/results_001.json
+```
 
 ---
 
@@ -115,6 +128,7 @@ Results saved to `kv_cache_results.json`.
 
 ```bash
 # Preview what will run without loading the model
+cd scripts
 python3 main.py --dry-run
 
 # Run only short prompts (~5 min)

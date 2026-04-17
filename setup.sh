@@ -4,7 +4,6 @@
 set -euo pipefail
 
 ENV_NAME="vllm-cpu"
-VLLM_WHEEL="https://github.com/vllm-project/vllm/releases/download/v0.8.5/vllm-0.8.5+cpu-cp38-abi3-manylinux_2_35_x86_64.whl"
 
 echo ""
 echo "=========================================="
@@ -67,21 +66,15 @@ echo ""
 echo "[5/6] Installing Python packages..."
 pip install --upgrade pip -q
 
-echo "  Installing vLLM CPU wheel (~1.5 GB, may take a few minutes)..."
-pip install "$VLLM_WHEEL" \
-    --extra-index-url https://download.pytorch.org/whl/cpu \
-    -q
+echo "  Installing vllm-cpu from PyPI (auto-detects AVX2/AVX512, ~1.5 GB)..."
+pip install vllm-cpu -q \
+    --extra-index-url https://download.pytorch.org/whl/cpu
 
 echo "  Installing other dependencies..."
 pip install pyyaml psutil requests matplotlib numpy huggingface-hub transformers -q
 
 # Verify vLLM
 VLLM_VER=$(python3 -c "import vllm; print(vllm.__version__)")
-if [[ "$VLLM_VER" != *"+cpu"* ]]; then
-    echo "ERROR: vLLM installed but missing +cpu suffix. Got: $VLLM_VER"
-    echo "This means the GPU wheel was installed instead. Re-run this script."
-    exit 1
-fi
 echo "  vLLM $VLLM_VER OK"
 
 # ── 6. Download model ────────────────────────────────────────────────
