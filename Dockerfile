@@ -1,54 +1,56 @@
-# Dockerfile — TurboQuantKV Cache Benchmark
-# Usage:
-#   docker build -t turboquant-bench .
-#   docker run --rm -v $(pwd)/results:/app/results turboquant-bench
+# Dockerfile — TurboQuantKV Cache Benchmark (Conda version)
 
-FROM python:3.12-slim
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 # ── System dependencies ───────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc-12 \
-    g++-12 \
-    libnuma-dev \
-    libtcmalloc-minimal4 \
     wget \
     git \
-    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 10 \
-       --slave /usr/bin/g++ g++ /usr/bin/g++-12 \
+    gcc \
+    g++ \
+    libnuma-dev \
+    libtcmalloc-minimal4 \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# ── Install vLLM CPU wheel + dependencies ────────────────────────────
-# Done before copying source so this layer is cached on rebuilds
-RUN pip install --upgrade pip --quiet && \
-    pip install vllm-cpu \
-        --extra-index-url https://download.pytorch.org/whl/cpu \
-        --quiet && \
-    pip install pyyaml psutil requests matplotlib numpy huggingface-hub transformers \
-        --quiet
+# ── Install Miniconda ─────────────────────────────────────────────────
+RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
+    bash miniconda.sh -b -p /opt/conda && \
+    rm miniconda.sh
 
-# ── Pre-download the model into the image ────────────────────────────
-# Remove this block if you'd rather mount a cache volume instead.
-RUN python3 -c "\
-from huggingface_hub import snapshot_download; \
-snapshot_download( \
-    'TinyLlama/TinyLlama-1.1B-Chat-v1.0', \
-    ignore_patterns=['*.msgpack', '*.h5', 'flax_model*'] \
-)"
+ENV PATH=/opt/conda/bin:$PATH
+
+# ── Create conda environment ──────────────────────────────────────────
+RUN conda create -y -n vllm-cpu python=3.12 && \
+    conda clean -afy
+
+# ── Install Python dependencies inside env ────────────────────────────
+RUN conda run -n vllm-cpu pip install --upgrade pip && \
+    conda run -n vllm-cpu pip install \
+        vllm-cpu \
+        --extra-index-url https://download.pytorch.org/whl/cpu && \
+    conda run -n vllm-cpu pip install \
+        pyyaml psutil matplotlib numpy huggingface-hub transformers
 
 # ── Copy project files ────────────────────────────────────────────────
-COPY main.py config.yaml prompts.json ./
-COPY generate_plots.py ./
-# Add any other scripts here
+COPY scripts/ scripts/
+COPY params/ params/
 
-# ── Runtime environment ───────────────────────────────────────────────
+# ── Runtime env vars ──────────────────────────────────────────────────
 ENV VLLM_CPU_KVCACHE_SPACE=4
 ENV TOKENIZERS_PARALLELISM=false
 ENV OMP_NUM_THREADS=4
 
-# Results directory (mount a volume here to get files out)
+# ── Create results dir ────────────────────────────────────────────────
 RUN mkdir -p /app/results
 
-# ── Default command ───────────────────────────────────────────────────
-CMD ["python3", "main.py", "--output", "results/kv_cache_results.json"]
+# ── Default command (runs inside conda env) ───────────────────────────
+CMD ["conda", "run", "--no-capture-output", "-n", "vllm-cpu", \
+     "python", "scripts/main.py", \
+     "--config", "scriptsconfig.yaml", \
+     "--prompts", "scripts/prompts.json", \
+     "--output", "results/results.json"]
